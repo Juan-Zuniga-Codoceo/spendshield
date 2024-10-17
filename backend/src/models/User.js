@@ -14,7 +14,7 @@ const UserSchema = new mongoose.Schema({
   },
   username: {
     type: String,
-    default: null
+    sparse: true // Permite múltiples documentos con valor null o undefined
   },
   password: {
     type: String,

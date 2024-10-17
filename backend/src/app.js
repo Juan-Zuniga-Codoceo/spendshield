@@ -15,8 +15,7 @@ const transactionRoutes = require('./routes/transactions');
 
 const app = express();
 
-// Al principio de app.js, después de require('dotenv').config();
-
+// Logging for development
 console.log('MONGODB_URI:', process.env.MONGODB_URI.replace(/<password>.*@/, '<password>@'));
 console.log('MONGODB_PASSWORD:', process.env.MONGODB_PASSWORD ? '[PASSWORD SET]' : '[PASSWORD NOT SET]');
 
@@ -33,11 +32,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/transactions', transactionRoutes);
 
-// 404 Not Found middleware
-app.use((req, res, next) => {
-  res.status(404).json({ message: 'Route not found' });
-});
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -46,6 +40,11 @@ app.use((err, req, res, next) => {
     message: err.message || 'Something went wrong!',
     error: process.env.NODE_ENV === 'production' ? {} : err
   });
+});
+
+// 404 Not Found middleware (moved to the end)
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Route not found' });
 });
 
 // Function to start server
