@@ -1,38 +1,39 @@
-// src/routes/budgets.js
+// src/routes/expenses.js
 
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const Budget = require('../models/Budget');
+const Expense = require('../models/Expense');
 
-// @route   GET api/budgets
-// @desc    Get all budgets for a user
+// @route   GET api/expenses
+// @desc    Get all expenses for a user
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const budgets = await Budget.find({ user: req.user.id });
-    res.json(budgets);
+    const expenses = await Expense.find({ user: req.user.id }).sort({ date: -1 });
+    res.json(expenses);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
 
-// @route   POST api/budgets
-// @desc    Add new budget
+// @route   POST api/expenses
+// @desc    Add new expense
 // @access  Private
 router.post('/', auth, async (req, res) => {
-  const { category, amount } = req.body;
+  const { description, amount, category } = req.body;
 
   try {
-    const newBudget = new Budget({
+    const newExpense = new Expense({
       user: req.user.id,
-      category,
-      amount
+      description,
+      amount,
+      category
     });
 
-    const budget = await newBudget.save();
-    res.json(budget);
+    const expense = await newExpense.save();
+    res.json(expense);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

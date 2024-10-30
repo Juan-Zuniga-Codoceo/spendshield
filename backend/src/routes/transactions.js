@@ -2,13 +2,43 @@
 
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
+const Transaction = require('../models/Transaction');
 
-// TODO: Implement transaction controller
-// const { getTransactions, createTransaction, updateTransaction, deleteTransaction } = require('../controllers/transactions');
+// @route   GET api/transactions
+// @desc    Get all transactions for a user
+// @access  Private
+router.get('/', auth, async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ user: req.user.id }).sort({ date: -1 });
+    res.json(transactions);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
-router.get('/', (req, res) => res.send('Get transactions route'));
-router.post('/', (req, res) => res.send('Create transaction route'));
-router.put('/:id', (req, res) => res.send('Update transaction route'));
-router.delete('/:id', (req, res) => res.send('Delete transaction route'));
+// @route   POST api/transactions
+// @desc    Add new transaction
+// @access  Private
+router.post('/', auth, async (req, res) => {
+  const { description, amount, type, category } = req.body;
+
+  try {
+    const newTransaction = new Transaction({
+      user: req.user.id,
+      description,
+      amount,
+      type,
+      category
+    });
+
+    const transaction = await newTransaction.save();
+    res.json(transaction);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
 module.exports = router;
