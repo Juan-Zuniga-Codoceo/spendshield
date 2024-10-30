@@ -1,11 +1,10 @@
-// src/models/Notification.js
-
 const mongoose = require('mongoose');
 
 const NotificationSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'users'
+    ref: 'users',
+    required: true
   },
   title: {
     type: String,
@@ -17,14 +16,23 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['info', 'warning', 'alert'],
-    default: 'info'
+    enum: ['debt', 'budget', 'general'],
+    default: 'general'
   },
-  active: {
+  relatedId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'debt',
+    required: false
+  },
+  isRead: {
     type: Boolean,
-    default: true
+    default: false
   },
-  date: {
+  isDismissed: {
+    type: Boolean,
+    default: false
+  },
+  createdAt: {
     type: Date,
     default: Date.now
   }

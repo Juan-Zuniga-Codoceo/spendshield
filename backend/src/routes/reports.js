@@ -1,84 +1,71 @@
 // src/routes/reports.js
-
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const Expense = require('../models/Expense');
-const Income = require('../models/Income');
-const Budget = require('../models/Budget');
+const Report = require('../models/Reports'); // Importante: importar el modelo Report
 
-// @route   GET api/reports/expenses-by-category
-// @desc    Get expenses grouped by category
+// @route   GET api/reports
+// @desc    Get all reports for a user
 // @access  Private
-router.get('/expenses-by-category', auth, async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
-    const expenses = await Expense.aggregate([
-      { $match: { user: req.user.id } },
-      { $group: { _id: '$category', value: { $sum: '$amount' } } },
-      { $project: { name: '$_id', value: 1, _id: 0 } }
-    ]);
-    res.json(expenses);
+    const reports = await Report.find({ user: req.user.id }).sort({ date: -1 });
+    res.json(reports);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('Error al obtener informes:', err);
+    res.status(500).json({ message: 'Error al obtener informes' });
   }
 });
 
-// @route   GET api/reports/income-vs-expenses
-// @desc    Get income vs expenses for last 6 months
+// @route   POST api/reports
+// @desc    Create a new report
 // @access  Private
-router.get('/income-vs-expenses', auth, async (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const { title, data } = req.body;
+    
+    if (!data || !title) {
+      return res.status(400).json({ message: 'Faltan datos requeridos' });
+    }
 
-    const incomes = await Income.aggregate([
-      { $match: { user: req.user.id, date: { $gte: sixMonthsAgo } } },
-      { $group: { _id: { $month: '$date' }, income: { $sum: '$amount' } } }
-    ]);
-
-    const expenses = await Expense.aggregate([
-      { $match: { user: req.user.id, date: { $gte: sixMonthsAgo } } },
-      { $group: { _id: { $month: '$date' }, expenses: { $sum: '$amount' } } }
-    ]);
-
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-    const result = monthNames.map((month, index) => ({
-      month,
-      income: (incomes.find(i => i._id === index + 1) || {}).income || 0,
-      expenses: (expenses.find(e => e._id === index + 1) || {}).expenses || 0
-    })).slice(0, 6);
-
-    res.json(result);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// @route   GET api/reports/budget-overview
-// @desc    Get budget overview (total budget vs total expenses)
-// @access  Private
-router.get('/budget-overview', auth, async (req, res) => {
-  try {
-    const totalBudget = await Budget.aggregate([
-      { $match: { user: req.user.id } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-
-    const totalExpenses = await Expense.aggregate([
-      { $match: { user: req.user.id } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-
-    res.json({
-      total: totalBudget[0]?.total || 0,
-      used: totalExpenses[0]?.total || 0
+    const newReport = new Report({
+      user: req.user.id,
+      title,
+      data
     });
+
+    const savedReport = await newReport.save();
+    res.json(savedReport);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('Error al crear reporte:', err);
+    res.status(500).json({ 
+      message: 'Error al crear reporte',
+      error: err.message 
+    });
+  }
+});
+
+// @route   DELETE api/reports/:id
+// @desc    Delete a report
+// @access  Private
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id);
+
+    if (!report) {
+      return res.status(404).json({ message: 'Informe no encontrado' });
+    }
+
+    // Verificar que el informe pertenece al usuario
+    if (report.user.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'No autorizado' });
+    }
+
+    await Report.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Informe eliminado' });
+  } catch (err) {
+    console.error('Error al eliminar informe:', err);
+    res.status(500).json({ message: 'Error al eliminar informe' });
   }
 });
 

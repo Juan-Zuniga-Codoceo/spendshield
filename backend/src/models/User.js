@@ -1,5 +1,4 @@
 // src/models/User.js
-
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
@@ -14,11 +13,24 @@ const UserSchema = new mongoose.Schema({
   },
   username: {
     type: String,
-    sparse: true // Permite múltiples documentos con valor null o undefined
+    sparse: true
   },
   password: {
     type: String,
     required: true
+  },
+  currency: {
+    type: String,
+    default: 'CLP',
+    enum: ['CLP', 'USD', 'EUR']
+  },
+  avatar: {
+    type: String,
+    default: null
+  },
+  avatarPath: {
+    type: String,
+    default: null
   },
   date: {
     type: Date,

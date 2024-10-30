@@ -1,11 +1,11 @@
-// src/models/Transaction.js
-
+// models/Transaction.js
 const mongoose = require('mongoose');
 
 const TransactionSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'users'
+    ref: 'users',
+    required: true
   },
   description: {
     type: String,
@@ -17,8 +17,8 @@ const TransactionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    required: true,
-    enum: ['income', 'expense']
+    enum: ['ingreso', 'gasto'],
+    required: true
   },
   category: {
     type: String,

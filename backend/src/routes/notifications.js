@@ -10,12 +10,16 @@ const Notification = require('../models/Notification');
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const notifications = await Notification.find({ user: req.user.id, active: true })
-      .sort({ date: -1 });
+    console.log('Usuario solicitando notificaciones:', req.user.id);
+    const notifications = await Notification.find({ 
+      user: req.user.id,
+      isDismissed: false 
+    });
+    console.log('Notificaciones encontradas:', notifications);
     res.json(notifications);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('Error al obtener notificaciones:', err);
+    res.status(500).json({ message: 'Error al obtener notificaciones' });
   }
 });
 
