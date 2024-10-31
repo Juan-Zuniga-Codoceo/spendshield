@@ -31,8 +31,9 @@ app.use(morgan('dev'));
 app.use(cors({
   origin: process.env.FRONTEND_URL,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'x-auth-token']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-auth-token'],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar']
 }));
 
 // Configuración de Helmet
@@ -69,6 +70,18 @@ const initializeApp = async () => {
     process.exit(1);
   }
 };
+
+// Health check endpoint con más información
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK',
+    timestamp: new Date(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    env: process.env.NODE_ENV,
+    version: process.version
+  });
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
