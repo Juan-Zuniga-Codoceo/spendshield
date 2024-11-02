@@ -41,9 +41,9 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'", "https://spendshield.onrender.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https://spendshield.onrender.com"],
-      connectSrc: ["'self'", "https://spendshield.onrender.com", "https://spendshield.netlify.app"],
+      defaultSrc: ["'self'", "https://*"],
+      imgSrc: ["'self'", "data:", "blob:", "https://*"],
+      connectSrc: ["'self'", "https://*"],
     },
   },
 }));
