@@ -41,9 +41,9 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "blob:", "http://localhost:5000"],
-      connectSrc: ["'self'", "http://localhost:5000"],
+      defaultSrc: ["'self'", "https://spendshield.onrender.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https://spendshield.onrender.com"],
+      connectSrc: ["'self'", "https://spendshield.onrender.com", "https://spendshield.netlify.app"],
     },
   },
 }));
@@ -52,7 +52,7 @@ app.use(helmet({
 app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
   setHeaders: (res, filePath) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.setHeader('Access-Control-Allow-Origin', 'https://spendshield.netlify.app');
   }
 }));
 
