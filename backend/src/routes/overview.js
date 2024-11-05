@@ -223,125 +223,99 @@ router.get('/summary', auth, async (req, res) => {
   try {
     console.log('Iniciando obtención de resumen financiero para usuario:', req.user.id);
     
-    // Obtener el primer día del mes actual
-    const now = new Date();
-    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    firstDayOfMonth.setHours(0, 0, 0, 0); // Asegurar inicio del día
-    console.log('Fecha inicio del mes:', firstDayOfMonth.toISOString());
+    // Calcular fechas
+    const currentDate = new Date();
+    const startOfCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const sixMonthsAgo = new Date(currentDate);
+    sixMonthsAgo.setMonth(currentDate.getMonth() - 6);
+    sixMonthsAgo.setDate(1); // Primer día del mes
+    
+    console.log('Rango de fechas:', {
+      desde: sixMonthsAgo.toISOString(),
+      hasta: currentDate.toISOString()
+    });
 
-    // Obtener todas las transacciones del usuario con validación
-    console.log('Buscando transacciones desde:', firstDayOfMonth.toISOString());
-    const transactions = await Transaction.find({ 
+    // Obtener todas las transacciones de los últimos 6 meses
+    const allTransactions = await Transaction.find({
       user: req.user.id,
-      date: { $gte: firstDayOfMonth }
-    }).lean();
-
-    if (!Array.isArray(transactions)) {
-      throw new Error('Error al obtener transacciones: respuesta inválida');
-    }
-    console.log('Transacciones encontradas:', transactions.length);
-
-    // Validar y calcular ingresos del mes
-    const incomeTransactions = transactions.filter(t => t.type === 'ingreso');
-    console.log('Transacciones de ingreso encontradas:', incomeTransactions.length);
-    const monthlyIncome = incomeTransactions.reduce((sum, t) => {
-      const amount = Number(t.amount);
-      if (isNaN(amount)) {
-        console.error('Monto inválido encontrado en ingreso:', t);
-        return sum;
+      date: { 
+        $gte: sixMonthsAgo,
+        $lte: currentDate
       }
-      return sum + amount;
-    }, 0);
-    console.log('Ingresos mensuales calculados:', monthlyIncome);
+    }).sort({ date: 1 }).lean();
 
-    // Validar y calcular gastos del mes
-    const expenseTransactions = transactions.filter(t => t.type === 'gasto');
-    console.log('Transacciones de gasto encontradas:', expenseTransactions.length);
-    const monthlyExpenses = expenseTransactions.reduce((sum, t) => {
-      const amount = Number(t.amount);
-      if (isNaN(amount)) {
-        console.error('Monto inválido encontrado en gasto:', t);
-        return sum;
+    console.log(`Total transacciones encontradas: ${allTransactions.length}`);
+
+    // Inicializar acumuladores
+    const monthlyData = {};
+    const expensesByCategory = {};
+    let currentMonthIncome = 0;
+    let currentMonthExpenses = 0;
+
+    // Procesar todas las transacciones
+    allTransactions.forEach(transaction => {
+      const amount = Number(transaction.amount);
+      const date = new Date(transaction.date);
+      const monthKey = date.toLocaleString('es-ES', { month: 'short' });
+      const isCurrentMonth = date >= startOfCurrentMonth;
+
+      // Inicializar datos del mes si no existe
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = {
+          month: monthKey,
+          ingresos: 0,
+          gastos: 0
+        };
       }
-      return sum + amount;
-    }, 0);
-    console.log('Gastos mensuales calculados:', monthlyExpenses);
 
-    // Calcular el balance actual
-    const currentBalance = monthlyIncome - monthlyExpenses;
-    console.log('Balance actual calculado:', currentBalance);
-
-    // Calcular gastos por categoría con validación
-    const expensesByCategory = expenseTransactions.reduce((acc, t) => {
-      const category = t.category || 'Sin Categoría';
-      const amount = Number(t.amount);
-      if (!isNaN(amount)) {
-        acc[category] = (acc[category] || 0) + amount;
-      }
-      return acc;
-    }, {});
-    console.log('Gastos por categoría:', expensesByCategory);
-
-    // Obtener deudas pendientes con validación
-    console.log('Buscando deudas pendientes...');
-    const unpaidDebts = await Debt.find({
-      user: req.user.id,
-      isPaid: false
-    }).sort({ dueDate: 1 }).lean();
-
-    if (!Array.isArray(unpaidDebts)) {
-      throw new Error('Error al obtener deudas: respuesta inválida');
-    }
-    console.log('Deudas pendientes encontradas:', unpaidDebts.length);
-
-    // Calcular total de deudas con validación
-    const totalDebts = unpaidDebts.reduce((sum, debt) => {
-      const amount = Number(debt.amount);
-      return isNaN(amount) ? sum : sum + amount;
-    }, 0);
-    console.log('Total de deudas calculado:', totalDebts);
-
-    // Preparar datos del resumen
-    const summaryData = {
-      currentBalance,
-      monthlyIncome,
-      monthlyExpenses,
-      totalDebts,
-      expensesByCategory,
-      lastUpdate: new Date(),
-      summary: {
-        income: {
-          total: monthlyIncome,
-          transactions: incomeTransactions.length
-        },
-        expenses: {
-          total: monthlyExpenses,
-          transactions: expenseTransactions.length
-        },
-        debts: {
-          total: totalDebts,
-          count: unpaidDebts.length
+      // Actualizar datos mensuales
+      if (transaction.type === 'ingreso') {
+        monthlyData[monthKey].ingresos += amount;
+        if (isCurrentMonth) currentMonthIncome += amount;
+      } else if (transaction.type === 'gasto') {
+        monthlyData[monthKey].gastos += amount;
+        if (isCurrentMonth) {
+          currentMonthExpenses += amount;
+          // Actualizar gastos por categoría solo para el mes actual
+          const category = transaction.category || 'Sin Categoría';
+          expensesByCategory[category] = (expensesByCategory[category] || 0) + amount;
         }
+      }
+    });
+
+    // Convertir datos mensuales a array y ordenar
+    const monthlyTrends = Object.values(monthlyData)
+      .sort((a, b) => {
+        const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        return months.indexOf(a.month.toLowerCase()) - months.indexOf(b.month.toLowerCase());
+      });
+
+    // Crear objeto de respuesta
+    const response = {
+      currentBalance: currentMonthIncome - currentMonthExpenses,
+      monthlyIncome: currentMonthIncome,
+      monthlyExpenses: currentMonthExpenses,
+      expensesByCategory,
+      monthlyTrends,
+      summary: {
+        totalTransactions: allTransactions.length,
+        months: monthlyTrends.length,
+        periodStart: sixMonthsAgo,
+        lastUpdate: new Date()
       }
     };
 
-    console.log('Datos del resumen a enviar:', {
-      balance: summaryData.currentBalance,
-      ingresos: summaryData.monthlyIncome,
-      gastos: summaryData.monthlyExpenses,
-      deudas: summaryData.totalDebts,
-      numTransacciones: transactions.length
+    console.log('Datos de tendencias:', {
+      mesesProcesados: monthlyTrends.length,
+      meses: monthlyTrends.map(m => m.month),
+      totalesIngresos: monthlyTrends.map(m => m.ingresos),
+      totalesGastos: monthlyTrends.map(m => m.gastos)
     });
 
-    res.json(summaryData);
+    res.json(response);
 
   } catch (err) {
-    console.error('Error detallado al obtener resumen financiero:', {
-      error: err.message,
-      stack: err.stack,
-      userId: req.user?.id
-    });
-    
+    console.error('Error en resumen financiero:', err);
     res.status(500).json({ 
       message: 'Error al obtener el resumen financiero',
       error: err.message 

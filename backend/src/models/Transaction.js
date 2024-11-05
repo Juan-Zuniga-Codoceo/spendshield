@@ -34,6 +34,9 @@ const TransactionSchema = new mongoose.Schema({
 module.exports = mongoose.model('transaction', TransactionSchema);*/
 
 const mongoose = require('mongoose');
+// En el modelo Transaction, agregar índices
+TransactionSchema.index({ user: 1, date: -1 });
+TransactionSchema.index({ user: 1, type: 1 });
 
 const TransactionSchema = new mongoose.Schema({
   user: {
