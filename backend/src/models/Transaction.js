@@ -34,10 +34,8 @@ const TransactionSchema = new mongoose.Schema({
 module.exports = mongoose.model('transaction', TransactionSchema);*/
 
 const mongoose = require('mongoose');
-// En el modelo Transaction, agregar índices
-TransactionSchema.index({ user: 1, date: -1 });
-TransactionSchema.index({ user: 1, type: 1 });
 
+// Primero definimos el esquema
 const TransactionSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -63,13 +61,13 @@ const TransactionSchema = new mongoose.Schema({
   },
   date: {
     type: Date,
-    default: Date.now,
-    get: function(date) {
-      return date ? new Date(date) : null;
-    }
+    default: Date.now
   }
-  
 });
+
+// Después de definir el esquema, añadimos los índices
+TransactionSchema.index({ user: 1, date: -1 });
+TransactionSchema.index({ user: 1, type: 1 });
 
 // Método para obtener transacciones del mes actual
 TransactionSchema.statics.getCurrentMonthTransactions = async function(userId) {
@@ -118,4 +116,7 @@ TransactionSchema.statics.calculateTotals = function(transactions) {
   }
 };
 
-module.exports = mongoose.model('transaction', TransactionSchema);
+// Finalmente exportamos el modelo
+const Transaction = mongoose.model('transaction', TransactionSchema);
+
+module.exports = Transaction;
