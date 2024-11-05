@@ -60,8 +60,12 @@ const TransactionSchema = new mongoose.Schema({
   },
   date: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+    get: function(date) {
+      return date ? new Date(date) : null;
+    }
   }
+  
 });
 
 // Método para obtener transacciones del mes actual
